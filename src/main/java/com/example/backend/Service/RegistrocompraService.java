@@ -1,57 +1,34 @@
-package com.example.backend.Service;
+package com.example.backend.service;
 
-import com.example.backend.model.Registrocompra;
-import com.example.backend.Repository.RegistroCompraRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.example.backend.model.RegistroCompra;
+import com.example.backend.repository.RegistroCompraRepository;
 import org.springframework.stereotype.Service;
-
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
-import java.util.Optional;
 
 @Service
-public class RegistrocompraService {
+@Transactional
+public class RegistroCompraService {
 
-    @Autowired
-    private RegistroCompraRepository registroCompraRepository;
+    private final RegistroCompraRepository repo;
 
-    // Obtener todos los registros de compra
-    public List<Registrocompra> getAllRegistros() {
-        return registroCompraRepository.findAll();
+    public RegistroCompraService(RegistroCompraRepository repo) {
+        this.repo = repo;
     }
 
-    // Obtener registro por ID
-    public Optional<Registrocompra> getRegistroById(Long id) {
-        return registroCompraRepository.findById(id);
+    public RegistroCompra create(RegistroCompra r) {
+        return repo.save(r);
     }
 
-    // Crear nuevo registro de compra
-    public Registrocompra createRegistro(Registrocompra registrocompra) {
-        return registroCompraRepository.save(registrocompra);
+    public List<RegistroCompra> listByUsuario(Long usuarioId) {
+        return repo.findByUsuarioId(usuarioId);
     }
 
-    // Actualizar registro de compra
-    public Registrocompra updateRegistro(Long id, Registrocompra registroDetails) {
-        return registroCompraRepository.findById(id)
-            .map(registro -> {
-                registro.setIdUsuario(registroDetails.getIdUsuario());
-                registro.setNombresUsuario(registroDetails.getNombresUsuario());
-                registro.setApellidosUsuario(registroDetails.getApellidosUsuario());
-                registro.setRutUsuario(registroDetails.getRutUsuario());
-                registro.setDvRut(registroDetails.getDvRut());
-                registro.setFechaCompra(registroDetails.getFechaCompra());
-                registro.setMontoTotal(registroDetails.getMontoTotal());
-                return registroCompraRepository.save(registro);
-            })
-            .orElseThrow(() -> new RuntimeException("Registro no encontrado con id: " + id));
+    public List<RegistroCompra> listAll() {
+        return repo.findAll();
     }
 
-    // Eliminar registro de compra
-    public void deleteRegistro(Long id) {
-        registroCompraRepository.deleteById(id);
-    }
-
-    // Buscar registros por ID de usuario
-    public List<Registrocompra> getRegistrosByUsuarioId(Long idUsuario) {
-        return registroCompraRepository.findByIdUsuario(idUsuario);
+    public void delete(Long id) {
+        repo.deleteById(id);
     }
 }

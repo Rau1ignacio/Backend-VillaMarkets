@@ -1,18 +1,11 @@
-package com.example.backend.Repository;
+package com.example.backend.repository;
 
-import com.example.backend.model.Usuarios;
+import com.example.backend.model.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-import java.util.List;
+import java.util.Optional;
 
-@Repository
-public interface UsuariosRepository extends JpaRepository<Usuarios, Long> {
-    
-    Usuarios findByUsername(String username);
-
-    boolean existsByUsername(String username);
-
-    List<Usuarios> findByRole(String role);
-
-    List<Usuarios> findByCorreoElectronico(String correoElectronico);
+public interface UsuariosRepository extends JpaRepository<Usuario, Long> {
+    Optional<Usuario> findByUsername(String username);
+    Optional<Usuario> findByCorreo(String correo);
+    Optional<Usuario> findByRut(String rut);
 }
