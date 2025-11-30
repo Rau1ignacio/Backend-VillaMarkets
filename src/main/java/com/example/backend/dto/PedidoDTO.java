@@ -12,7 +12,9 @@ import java.util.List;
 public class PedidoDTO {
     private Long id;
     private Long usuarioId;
+    private String usuarioNombre;
     private Long tiendaId;
+    private String tiendaNombre;
     private LocalDateTime fechaPedido;
     private String estado;
     private String tipoEntrega;

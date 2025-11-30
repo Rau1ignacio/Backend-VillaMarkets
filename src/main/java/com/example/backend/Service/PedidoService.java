@@ -24,25 +24,46 @@ public class PedidoService {
     }
 
     public Pedido create(Pedido pedido) {
-        // validar stock y calcular totales
-        BigDecimal total = BigDecimal.ZERO;
-        if (pedido.getItems() == null || pedido.getItems().isEmpty()) {
+        if (pedido == null || pedido.getItems() == null || pedido.getItems().isEmpty()) {
             throw new RuntimeException("Pedido sin items");
         }
-        for (ItemPedido it : pedido.getItems()) {
-            Producto p = productoRepo.findById(it.getProducto().getId()).orElseThrow(() -> new RuntimeException("Producto no encontrado"));
-            int stock = p.getStock() == null ? 0 : p.getStock();
-            if (stock < it.getCantidad()) throw new RuntimeException("Stock insuficiente para " + p.getNombre());
-            // decrementar stock
-            p.setStock(stock - it.getCantidad());
-            productoRepo.save(p);
 
-            BigDecimal subtotal = it.getPrecioUnitario().multiply(BigDecimal.valueOf(it.getCantidad()));
+        BigDecimal total = BigDecimal.ZERO;
+        for (ItemPedido item : pedido.getItems()) {
+            if (item.getProducto() == null || item.getProducto().getId() == null) {
+                throw new RuntimeException("Producto no especificado en item");
+            }
+
+            Producto producto = productoRepo.findById(item.getProducto().getId())
+                    .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+
+            int stockDisponible = producto.getStock() == null ? 0 : producto.getStock();
+            int cantidadSolicitada = item.getCantidad() == null ? 0 : item.getCantidad();
+            if (cantidadSolicitada <= 0) {
+                throw new RuntimeException("Cantidad invalida para " + producto.getNombre());
+            }
+            if (stockDisponible < cantidadSolicitada) {
+                throw new RuntimeException("Stock insuficiente para " + producto.getNombre());
+            }
+
+            producto.setStock(stockDisponible - cantidadSolicitada);
+            productoRepo.save(producto);
+
+            item.setProducto(producto);
+            if (item.getPrecioUnitario() == null) {
+                item.setPrecioUnitario(producto.getPrecio());
+            }
+            item.setPedido(pedido);
+
+            BigDecimal precio = item.getPrecioUnitario() == null ? BigDecimal.ZERO : item.getPrecioUnitario();
+            BigDecimal subtotal = precio.multiply(BigDecimal.valueOf(cantidadSolicitada));
             total = total.add(subtotal);
-            it.setPedido(pedido); // vincular
         }
+
         pedido.setTotal(total);
-        pedido.setFechaPedido(LocalDateTime.now());
+        if (pedido.getFechaPedido() == null) {
+            pedido.setFechaPedido(LocalDateTime.now());
+        }
         return pedidoRepo.save(pedido);
     }
 
@@ -52,15 +73,37 @@ public class PedidoService {
         return pedidoRepo.save(p);
     }
 
+    @Transactional(readOnly = true)
     public Pedido findById(Long id) {
-        return pedidoRepo.findById(id).orElseThrow(() -> new RuntimeException("Pedido no encontrado"));
+        Pedido pedido = pedidoRepo.findById(id).orElseThrow(() -> new RuntimeException("Pedido no encontrado"));
+        preloadItems(pedido);
+        return pedido;
     }
 
+    @Transactional(readOnly = true)
     public List<Pedido> listByUsuario(Long usuarioId) {
-        return pedidoRepo.findByUsuarioId(usuarioId);
+        if (usuarioId == null) {
+            throw new RuntimeException("usuarioId requerido");
+        }
+        List<Pedido> pedidos = pedidoRepo.findByUsuarioIdOrderByFechaPedidoDesc(usuarioId);
+        pedidos.forEach(this::preloadItems);
+        return pedidos;
     }
 
+    @Transactional(readOnly = true)
     public List<Pedido> listAll() {
-        return pedidoRepo.findAll();
+        List<Pedido> pedidos = pedidoRepo.findAllByOrderByFechaPedidoDesc();
+        pedidos.forEach(this::preloadItems);
+        return pedidos;
+    }
+
+    private void preloadItems(Pedido pedido) {
+        if (pedido != null && pedido.getItems() != null) {
+            pedido.getItems().forEach(item -> {
+                if (item.getProducto() != null) {
+                    item.getProducto().getId();
+                }
+            });
+        }
     }
 }

@@ -1,18 +1,20 @@
 package com.example.backend.controller;
 
-import com.example.backend.dto.PedidoDTO;
 import com.example.backend.dto.ItemPedidoDTO;
-import com.example.backend.model.Pedido;
+import com.example.backend.dto.PedidoDTO;
 import com.example.backend.model.ItemPedido;
+import com.example.backend.model.Pedido;
 import com.example.backend.model.Producto;
 import com.example.backend.service.PedidoService;
 import com.example.backend.service.ProductoService;
-import com.example.backend.service.UsuarioService;
 import com.example.backend.service.TiendaService;
-import org.springframework.web.bind.annotation.*;
+import com.example.backend.service.UsuarioService;
 import org.springframework.http.ResponseEntity;
-import java.util.stream.Collectors;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/pedidos")
@@ -34,6 +36,9 @@ public class PedidoController {
 
     @PostMapping
     public ResponseEntity<PedidoDTO> create(@RequestBody PedidoDTO dto) {
+        if (dto.getItems() == null || dto.getItems().isEmpty()) {
+            throw new RuntimeException("Pedido sin items");
+        }
         Pedido p = new Pedido();
         p.setTipoEntrega(dto.getTipoEntrega());
         p.setMetodoPago(dto.getMetodoPago());
@@ -42,59 +47,38 @@ public class PedidoController {
         if (dto.getTiendaId() != null) p.setTienda(tiendaService.findById(dto.getTiendaId()));
         List<ItemPedido> items = dto.getItems().stream().map(it -> {
             Producto prod = productoService.findById(it.getProductoId());
-            ItemPedido ip = ItemPedido.builder()
+            return ItemPedido.builder()
                     .producto(prod)
                     .cantidad(it.getCantidad())
-                    .precioUnitario(it.getPrecioUnitario())
+                    .precioUnitario(it.getPrecioUnitario() == null ? prod.getPrecio() : it.getPrecioUnitario())
                     .build();
-            return ip;
         }).collect(Collectors.toList());
         p.setItems(items);
         Pedido saved = pedidoService.create(p);
-        dto.setId(saved.getId());
-        dto.setFechaPedido(saved.getFechaPedido());
-        dto.setEstado(saved.getEstado().name());
-        return ResponseEntity.ok(dto);
+        return ResponseEntity.ok(toDTO(saved));
     }
 
     @GetMapping("/usuario/{usuarioId}")
     public ResponseEntity<List<PedidoDTO>> listByUsuario(@PathVariable Long usuarioId) {
-        List<PedidoDTO> out = pedidoService.listByUsuario(usuarioId).stream().map(p -> PedidoDTO.builder()
-                .id(p.getId())
-                .usuarioId(p.getUsuario() != null ? p.getUsuario().getId() : null)
-                .tiendaId(p.getTienda() != null ? p.getTienda().getId() : null)
-                .fechaPedido(p.getFechaPedido())
-                .estado(p.getEstado().name())
-                .total(p.getTotal())
-                .direccionEntrega(p.getDireccionEntrega())
-                .items(p.getItems().stream().map(i -> ItemPedidoDTO.builder()
-                        .productoId(i.getProducto() != null ? i.getProducto().getId() : null)
-                        .cantidad(i.getCantidad())
-                        .precioUnitario(i.getPrecioUnitario())
-                        .build()).collect(Collectors.toList()))
-                .build()
-        ).collect(Collectors.toList());
-        return ResponseEntity.ok(out);
+        return ResponseEntity.ok(
+                pedidoService.listByUsuario(usuarioId).stream()
+                        .map(this::toDTO)
+                        .collect(Collectors.toList())
+        );
+    }
+
+    @GetMapping
+    public ResponseEntity<List<PedidoDTO>> listAll() {
+        return ResponseEntity.ok(
+                pedidoService.listAll().stream()
+                        .map(this::toDTO)
+                        .collect(Collectors.toList())
+        );
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<PedidoDTO> getById(@PathVariable Long id) {
-        Pedido p = pedidoService.findById(id);
-        PedidoDTO dto = PedidoDTO.builder()
-                .id(p.getId())
-                .usuarioId(p.getUsuario() != null ? p.getUsuario().getId() : null)
-                .tiendaId(p.getTienda() != null ? p.getTienda().getId() : null)
-                .fechaPedido(p.getFechaPedido())
-                .estado(p.getEstado().name())
-                .total(p.getTotal())
-                .direccionEntrega(p.getDireccionEntrega())
-                .items(p.getItems().stream().map(i -> ItemPedidoDTO.builder()
-                        .productoId(i.getProducto() != null ? i.getProducto().getId() : null)
-                        .cantidad(i.getCantidad())
-                        .precioUnitario(i.getPrecioUnitario())
-                        .build()).collect(Collectors.toList()))
-                .build();
-        return ResponseEntity.ok(dto);
+        return ResponseEntity.ok(toDTO(pedidoService.findById(id)));
     }
 
     @PutMapping("/{id}/estado")
@@ -102,5 +86,33 @@ public class PedidoController {
         Pedido.EstadoPedido est = Pedido.EstadoPedido.valueOf(estado.toUpperCase());
         pedidoService.updateEstado(id, est);
         return ResponseEntity.noContent().build();
+    }
+
+    private PedidoDTO toDTO(Pedido pedido) {
+        return PedidoDTO.builder()
+                .id(pedido.getId())
+                .usuarioId(pedido.getUsuario() != null ? pedido.getUsuario().getId() : null)
+                .usuarioNombre(pedido.getUsuario() != null ? pedido.getUsuario().getNombres() : null)
+                .tiendaId(pedido.getTienda() != null ? pedido.getTienda().getId() : null)
+                .tiendaNombre(pedido.getTienda() != null ? pedido.getTienda().getNombre() : null)
+                .fechaPedido(pedido.getFechaPedido())
+                .estado(pedido.getEstado() != null ? pedido.getEstado().name() : null)
+                .tipoEntrega(pedido.getTipoEntrega())
+                .metodoPago(pedido.getMetodoPago())
+                .total(pedido.getTotal())
+                .direccionEntrega(pedido.getDireccionEntrega())
+                .items(
+                        pedido.getItems() == null
+                                ? Collections.emptyList()
+                                : pedido.getItems().stream().map(i -> ItemPedidoDTO.builder()
+                                        .productoId(i.getProducto() != null ? i.getProducto().getId() : null)
+                                        .productoNombre(i.getProducto() != null ? i.getProducto().getNombre() : null)
+                                        .imagenProducto(i.getProducto() != null ? i.getProducto().getImagen() : null)
+                                        .cantidad(i.getCantidad())
+                                        .precioUnitario(i.getPrecioUnitario())
+                                        .build())
+                                .collect(Collectors.toList())
+                )
+                .build();
     }
 }
