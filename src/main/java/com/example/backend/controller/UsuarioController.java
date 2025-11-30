@@ -15,10 +15,13 @@ public class UsuarioController {
 
     private final UsuarioService service;
 
-    public UsuarioController(UsuarioService service) { this.service = service; }
+    public UsuarioController(UsuarioService service) {
+        this.service = service;
+    }
 
     @PostMapping("/register")
     public ResponseEntity<UsuarioDTO> register(@RequestBody UsuarioDTO dto) {
+        System.out.println("Registering user: " + dto); // DEBUG LOG
         Usuario u = Usuario.builder()
                 .nombres(dto.getNombres())
                 .apellidos(dto.getApellidos())
@@ -84,8 +87,7 @@ public class UsuarioController {
                 .direccion(u.getDireccion())
                 .rol(u.getRol())
                 .fechaCreacion(u.getFechaCreacion())
-                .build()
-        ).collect(Collectors.toList());
+                .build()).collect(Collectors.toList());
         return ResponseEntity.ok(list);
     }
 
@@ -103,7 +105,7 @@ public class UsuarioController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteUsuario(@PathVariable Long id) {
         service.delete(id);
         return ResponseEntity.noContent().build();
     }

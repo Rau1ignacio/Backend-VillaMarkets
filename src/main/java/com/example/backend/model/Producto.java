@@ -39,4 +39,11 @@ public class Producto {
     @JoinColumn(name = "tienda_id")
     @JsonIgnore
     private Tienda tienda;
+
+    @PrePersist
+    protected void onCreate() {
+        if (fechaRegistro == null) {
+            fechaRegistro = LocalDateTime.now();
+        }
+    }
 }

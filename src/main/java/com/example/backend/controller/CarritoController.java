@@ -46,15 +46,32 @@ public class CarritoController {
     @PostMapping("/usuario/{usuarioId}/add")
     public ResponseEntity<CarritoDTO> addItem(@PathVariable Long usuarioId, @RequestBody ItemCarritoDTO itemDto) {
         Carrito c = carritoService.addItem(usuarioId, itemDto.getProductoId(), itemDto.getCantidad());
-        return getByUsuario(usuarioId);
+        CarritoDTO dto = CarritoDTO.builder()
+                .id(c.getId())
+                .usuarioId(c.getUsuario() != null ? c.getUsuario().getId() : null)
+                .items(c.getItems() == null ? null : c.getItems().stream().map(it -> ItemCarritoDTO.builder()
+                        .id(it.getId())
+                        .productoId(it.getProducto() != null ? it.getProducto().getId() : null)
+                        .cantidad(it.getCantidad())
+                        .precioUnitario(it.getPrecioUnitario())
+                        .build()).collect(Collectors.toList()))
+                .build();
+        return ResponseEntity.ok(dto);
     }
 
     @DeleteMapping("/{carritoId}/item/{itemId}")
     public ResponseEntity<CarritoDTO> removeItem(@PathVariable Long carritoId, @PathVariable Long itemId) {
-        carritoService.removeItem(carritoId, itemId);
-        // find carrito and return
-        Carrito c = carritoService.getOrCreateByUsuarioId(null); // placeholder: ideally buscar por carritoId service
-        CarritoDTO dto = CarritoDTO.builder().id(c.getId()).build();
+        Carrito c = carritoService.removeItem(carritoId, itemId);
+        CarritoDTO dto = CarritoDTO.builder()
+                .id(c.getId())
+                .usuarioId(c.getUsuario() != null ? c.getUsuario().getId() : null)
+                .items(c.getItems() == null ? null : c.getItems().stream().map(it -> ItemCarritoDTO.builder()
+                        .id(it.getId())
+                        .productoId(it.getProducto() != null ? it.getProducto().getId() : null)
+                        .cantidad(it.getCantidad())
+                        .precioUnitario(it.getPrecioUnitario())
+                        .build()).collect(Collectors.toList()))
+                .build();
         return ResponseEntity.ok(dto);
     }
 
