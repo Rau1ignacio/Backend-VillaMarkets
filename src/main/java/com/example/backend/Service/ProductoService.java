@@ -42,6 +42,10 @@ public class ProductoService {
         return repo.findByTiendaId(tiendaId);
     }
 
+    public List<Producto> listByAdministrador(Long adminId) {
+        return repo.findByTiendaVendedorId(adminId);
+    }
+
     public List<Producto> listByCategoria(String categoria) {
         return repo.findByCategoriaIgnoreCase(categoria);
     }

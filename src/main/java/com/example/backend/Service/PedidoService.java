@@ -97,6 +97,26 @@ public class PedidoService {
         return pedidos;
     }
 
+    @Transactional(readOnly = true)
+    public List<Pedido> listByTienda(Long tiendaId) {
+        if (tiendaId == null) {
+            throw new RuntimeException("tiendaId requerido");
+        }
+        List<Pedido> pedidos = pedidoRepo.findByTiendaIdOrderByFechaPedidoDesc(tiendaId);
+        pedidos.forEach(this::preloadItems);
+        return pedidos;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Pedido> listByAdmin(Long adminId) {
+        if (adminId == null) {
+            throw new RuntimeException("adminId requerido");
+        }
+        List<Pedido> pedidos = pedidoRepo.findByTiendaVendedorIdOrderByFechaPedidoDesc(adminId);
+        pedidos.forEach(this::preloadItems);
+        return pedidos;
+    }
+
     private void preloadItems(Pedido pedido) {
         if (pedido != null && pedido.getItems() != null) {
             pedido.getItems().forEach(item -> {

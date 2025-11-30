@@ -24,8 +24,10 @@ public class TiendaController {
     }
 
     @GetMapping
-    public ResponseEntity<List<TiendaDTO>> list() {
-        List<TiendaDTO> out = service.listAll().stream().map(t -> TiendaDTO.builder()
+    public ResponseEntity<List<TiendaDTO>> list(@RequestParam(value = "vendedorId", required = false) Long vendedorId) {
+        List<Tienda> tiendas = vendedorId != null ? service.listByVendedor(vendedorId) : service.listAll();
+
+        List<TiendaDTO> out = tiendas.stream().map(t -> TiendaDTO.builder()
                 .id(t.getId())
                 .nombre(t.getNombre())
                 .direccion(t.getDireccion())

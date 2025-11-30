@@ -67,6 +67,24 @@ public class PedidoController {
         );
     }
 
+    @GetMapping("/tienda/{tiendaId}")
+    public ResponseEntity<List<PedidoDTO>> listByTienda(@PathVariable Long tiendaId) {
+        return ResponseEntity.ok(
+                pedidoService.listByTienda(tiendaId).stream()
+                        .map(this::toDTO)
+                        .collect(Collectors.toList())
+        );
+    }
+
+    @GetMapping("/admin/{adminId}")
+    public ResponseEntity<List<PedidoDTO>> listByAdmin(@PathVariable Long adminId) {
+        return ResponseEntity.ok(
+                pedidoService.listByAdmin(adminId).stream()
+                        .map(this::toDTO)
+                        .collect(Collectors.toList())
+        );
+    }
+
     @GetMapping
     public ResponseEntity<List<PedidoDTO>> listAll() {
         return ResponseEntity.ok(

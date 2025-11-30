@@ -74,6 +74,23 @@ public class ProductoController {
         return ResponseEntity.ok(list);
     }
 
+    @GetMapping("/admin/{adminId}")
+    public ResponseEntity<List<ProductoDTO>> byAdmin(@PathVariable Long adminId) {
+        List<ProductoDTO> list = productoService.listByAdministrador(adminId).stream().map(p -> ProductoDTO.builder()
+                .id(p.getId())
+                .nombre(p.getNombre())
+                .precio(p.getPrecio())
+                .descripcion(p.getDescripcion())
+                .categoria(p.getCategoria())
+                .stock(p.getStock())
+                .imagen(p.getImagen())
+                .activo(p.getActivo())
+                .tiendaId(p.getTienda() != null ? p.getTienda().getId() : null)
+                .build()
+        ).collect(Collectors.toList());
+        return ResponseEntity.ok(list);
+    }
+
     @PostMapping
     @CrossOrigin(origins = "*")
     public ResponseEntity<ProductoDTO> create(@RequestBody ProductoDTO dto) {
