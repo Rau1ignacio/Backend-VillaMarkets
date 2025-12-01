@@ -37,8 +37,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://127.0.0.1:5173")); // Origen del
-                                                                                                    // frontend
+        
+        // CAMBIO CRÍTICO: Usar patterns en lugar de origins fijos para aceptar todo (*)
+        configuration.setAllowedOriginPatterns(List.of("*"));
+        
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

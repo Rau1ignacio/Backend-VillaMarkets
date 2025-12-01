@@ -8,8 +8,11 @@ import com.example.backend.repository.CarritoRepository;
 import com.example.backend.repository.ItemCarritoRepository;
 import com.example.backend.repository.ProductoRepository;
 import com.example.backend.repository.UsuariosRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -22,8 +25,10 @@ public class CarritoService {
     private final ProductoRepository productoRepo;
     private final UsuariosRepository usuariosRepo;
 
-    public CarritoService(CarritoRepository carritoRepo, ItemCarritoRepository itemRepo, 
-                         ProductoRepository productoRepo, UsuariosRepository usuariosRepo) {
+    public CarritoService(CarritoRepository carritoRepo,
+                          ItemCarritoRepository itemRepo,
+                          ProductoRepository productoRepo,
+                          UsuariosRepository usuariosRepo) {
         this.carritoRepo = carritoRepo;
         this.itemRepo = itemRepo;
         this.productoRepo = productoRepo;
@@ -32,11 +37,11 @@ public class CarritoService {
 
     public Carrito getOrCreateByUsuarioId(Long usuarioId) {
         if (usuarioId == null) {
-            throw new RuntimeException("usuarioId no puede ser null");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "usuarioId no puede ser null");
         }
         Carrito carrito = carritoRepo.findByUsuarioId(usuarioId).orElseGet(() -> {
             Usuario usuario = usuariosRepo.findById(usuarioId)
-                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
             Carrito c = Carrito.builder()
                     .usuario(usuario)
                     .fechaCreacion(LocalDateTime.now())
@@ -49,13 +54,13 @@ public class CarritoService {
 
     public Carrito addItem(Long usuarioId, Long productoId, int cantidad) {
         if (usuarioId == null || productoId == null || cantidad <= 0) {
-            throw new RuntimeException("Datos inválidos para agregar item");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Datos invalidos para agregar item");
         }
         Carrito carrito = getOrCreateByUsuarioId(usuarioId);
         Producto prod = productoRepo.findById(productoId)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
-        
-        // Verificar si el producto ya está en el carrito
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Producto no encontrado"));
+
+        // Verificar si el producto ya esta en el carrito
         if (carrito.getItems() != null) {
             ItemCarrito existing = carrito.getItems().stream()
                     .filter(it -> it.getProducto().getId().equals(productoId))
@@ -83,7 +88,7 @@ public class CarritoService {
 
     public Carrito removeItem(Long carritoId, Long itemId) {
         if (carritoId == null || itemId == null) {
-            throw new RuntimeException("carritoId y itemId son requeridos");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "carritoId y itemId son requeridos");
         }
         itemRepo.deleteById(itemId);
         return reloadCarrito(carritoId);
@@ -91,7 +96,7 @@ public class CarritoService {
 
     public void clearCart(Long carritoId) {
         Carrito c = carritoRepo.findById(carritoId)
-                .orElseThrow(() -> new RuntimeException("Carrito no encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Carrito no encontrado"));
         if (c.getItems() != null) {
             itemRepo.deleteAll(c.getItems());
             c.getItems().clear();
@@ -101,10 +106,10 @@ public class CarritoService {
 
     public Carrito updateItemQuantity(Long carritoId, Long itemId, Integer cantidad) {
         if (carritoId == null || itemId == null || cantidad == null || cantidad <= 0) {
-            throw new RuntimeException("Datos invalidos para actualizar item");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Datos invalidos para actualizar item");
         }
         ItemCarrito item = itemRepo.findById(itemId)
-                .orElseThrow(() -> new RuntimeException("Item no encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Item no encontrado"));
         item.setCantidad(cantidad);
         itemRepo.save(item);
         return reloadCarrito(carritoId);
@@ -112,13 +117,13 @@ public class CarritoService {
 
     public List<ItemCarrito> listItems(Long carritoId) {
         Carrito c = carritoRepo.findById(carritoId)
-                .orElseThrow(() -> new RuntimeException("Carrito no encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Carrito no encontrado"));
         return c.getItems();
     }
 
     private Carrito reloadCarrito(Long carritoId) {
         Carrito carrito = carritoRepo.findById(carritoId)
-                .orElseThrow(() -> new RuntimeException("Carrito no encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Carrito no encontrado"));
         precargarItems(carrito);
         return carrito;
     }
